@@ -281,7 +281,7 @@ export const ArticleInputForm: React.FC<ArticleInputFormProps> = ({ onGenerate, 
             <legend className="field-label mb-3">Artwork</legend>
             <div className="flex items-center justify-between gap-4">
               <div>
-                <div className="text-[12px] text-paper/80">FLUX.1 illustration</div>
+                <div className="text-[12px] text-paper/80">FLUX illustration</div>
                 <div className="meta mt-0.5 text-[10px] normal-case tracking-normal">
                   Composited under the typeset layout
                 </div>

@@ -1,8 +1,8 @@
+@import "tailwindcss";
+
 :root {
   --lamp-length: 90px;
 }
-
-@import "tailwindcss";
 
 @theme inline {
   --color-ink: #07080b;
@@ -186,14 +186,23 @@ input:-webkit-autofill:focus {
 .lamp__mount {
   position: absolute;
   top: -8px;
-  left: -20px;
-  width: 40px;
+  left: -22px;
+  width: 44px;
   height: 16px;
-  border-radius: 10px 10px 5px 5px;
-  background: linear-gradient(135deg, #e1bd6f 0%, #8f6d2e 58%, #cfa444 100%);
+  border-radius: 6px 6px 12px 12px;
+  background: linear-gradient(90deg, 
+    #2c1b07 0%, 
+    #5a3a10 12%, 
+    #9c7228 28%, 
+    #f5e0a0 44%, 
+    #d8a944 58%, 
+    #7a5218 80%, 
+    #2c1b07 100%
+  );
   box-shadow:
-    0 4px 14px rgba(0, 0, 0, 0.42),
-    inset 0 1px 0 rgba(255, 246, 220, 0.38);
+    0 4px 14px rgba(0, 0, 0, 0.65),
+    inset 0 1px 1px rgba(255, 255, 255, 0.5),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.5);
 }
 
 .lamp__pendulum {
@@ -210,47 +219,129 @@ input:-webkit-autofill:focus {
 .lamp__cord {
   position: absolute;
   top: 0;
-  left: -1px;
-  width: 2px;
+  left: -1.5px;
+  width: 3px;
   height: var(--lamp-length);
   border-radius: 2px;
-  background: linear-gradient(to bottom, #765b27, #d8b363 55%, #94722d);
-  box-shadow: 0 0 10px rgba(207, 164, 68, 0.14);
+  background: repeating-linear-gradient(
+    135deg,
+    #3b2609 0px,
+    #3b2609 2px,
+    #cfa444 3px,
+    #e8c87a 4px,
+    #3b2609 5px
+  );
+  box-shadow: 
+    0 0 6px rgba(0, 0, 0, 0.6),
+    inset 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.lamp__cap {
+  position: absolute;
+  top: calc(var(--lamp-length) - 29px);
+  left: -9px;
+  width: 18px;
+  height: 9px;
+  border-radius: 4px 4px 2px 2px;
+  background: linear-gradient(90deg,
+    #261605 0%,
+    #5c3c12 15%,
+    #a67d30 30%,
+    #fae4ac 46%,
+    #cfa444 64%,
+    #6d4916 84%,
+    #261605 100%
+  );
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.55),
+    inset 0 1px 1px rgba(255, 255, 255, 0.65),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.5);
+  z-index: 2;
 }
 
 .lamp__shade {
   position: absolute;
-  top: calc(var(--lamp-length) - 23px);
-  left: -27px;
-  width: 54px;
-  height: 28px;
+  top: calc(var(--lamp-length) - 22px);
+  left: -29px;
+  width: 58px;
+  height: 29px;
   clip-path: polygon(21% 0%, 79% 0%, 100% 100%, 0% 100%);
   background:
-    linear-gradient(135deg, rgba(255, 239, 197, 0.72), transparent 34%),
-    linear-gradient(to bottom, #d5ab52 0%, #9a732b 72%, #684c1c 100%);
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.34));
+    linear-gradient(90deg,
+      transparent 0%,
+      transparent 30%,
+      rgba(255, 255, 255, 0.45) 38%,
+      rgba(255, 255, 255, 0.85) 43%,
+      rgba(255, 248, 220, 0.95) 46%,
+      rgba(255, 255, 255, 0.35) 50%,
+      transparent 58%,
+      transparent 100%
+    ),
+    linear-gradient(90deg,
+      #241505 0%,
+      #4e320d 8%,
+      #7d551b 20%,
+      #bf943b 35%,
+      #f5df9e 48%,
+      #cfa444 62%,
+      #9c7228 78%,
+      #4e320d 92%,
+      #241505 100%
+    ),
+    linear-gradient(to bottom,
+      rgba(255, 245, 215, 0.5) 0%,
+      rgba(207, 164, 68, 0) 40%,
+      rgba(20, 12, 3, 0.55) 100%
+    );
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.6)) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+  z-index: 1;
+}
+
+.lamp__rim {
+  position: absolute;
+  top: calc(var(--lamp-length) + 4px);
+  left: -29px;
+  width: 58px;
+  height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(90deg,
+    #241505 0%,
+    #694715 15%,
+    #d8aa45 35%,
+    #fff2c8 48%,
+    #cfa444 65%,
+    #694715 85%,
+    #241505 100%
+  );
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.65),
+    inset 0 1px 1px rgba(255, 255, 255, 0.7);
+  z-index: 3;
 }
 
 .lamp__bulb {
   position: absolute;
-  top: calc(var(--lamp-length) + 1px);
-  left: -8px;
-  width: 16px;
-  height: 16px;
+  top: calc(var(--lamp-length) + 3px);
+  left: -8.5px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
   background: radial-gradient(
-    circle at 34% 28%,
-    #fff9de 0%,
-    #ffe49b 32%,
-    #d8a944 68%,
-    #80591b 100%
+    circle at 35% 28%,
+    #ffffff 0%,
+    #fff8e2 18%,
+    #ffd570 42%,
+    #c99326 70%,
+    #5a3708 100%
   );
   box-shadow:
-    0 0 16px 7px rgba(255, 221, 141, 0.28),
-    0 0 48px 20px rgba(207, 164, 68, 0.14);
+    0 0 18px 8px rgba(255, 222, 135, 0.45),
+    0 0 52px 22px rgba(207, 164, 68, 0.24),
+    inset 0 1px 2px rgba(255, 255, 255, 0.95);
   transition:
     background 0.4s var(--ease),
     box-shadow 0.4s var(--ease);
+  z-index: 2;
 }
 
 .lamp__glow {
@@ -290,26 +381,43 @@ input:-webkit-autofill:focus {
   transition: opacity 0.45s var(--ease);
 }
 
-
 .lamp__pull {
   position: absolute;
   top: calc(var(--lamp-length) + 16px);
-  left: -0.5px;
-  width: 1px;
-  height: 22px;
-  background: linear-gradient(to bottom, #d8b363 0%, #94722d 100%);
-  box-shadow: 0 0 4px rgba(207, 164, 68, 0.2);
+  left: -1px;
+  width: 2px;
+  height: 24px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #ffd778 0px,
+    #ffd778 2px,
+    #5c3d10 3px,
+    #5c3d10 4px
+  );
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  z-index: 4;
 }
 
 .lamp__bead {
   position: absolute;
-  top: calc(var(--lamp-length) + 36px);
-  left: -3.5px;
-  width: 7px;
-  height: 9px;
-  border-radius: 4px;
-  background: linear-gradient(135deg, #fff2c8 0%, #d8a944 50%, #785217 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 6px rgba(237, 215, 164, 0.35);
+  top: calc(var(--lamp-length) + 38px);
+  left: -4px;
+  width: 8px;
+  height: 12px;
+  border-radius: 4px 4px 5px 5px;
+  background: linear-gradient(90deg,
+    #2a1a06 0%,
+    #694715 15%,
+    #ffd778 45%,
+    #cfa444 70%,
+    #4e320d 90%,
+    #2a1a06 100%
+  );
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.7),
+    inset 0 1px 1px rgba(255, 255, 255, 0.7),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.6);
+  z-index: 4;
 }
 
 .lamp__interaction {
@@ -352,23 +460,12 @@ input:-webkit-autofill:focus {
   transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* When the lamp is OFF, hide all text and website content completely */
+/* The veil alone darkens the room. The page content itself always stays
+   laid out and scrollable, so a missed transition can never blank the site. */
 html[data-lamp='off'] header,
 html[data-lamp='off'] main,
 html[data-lamp='off'] footer {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-  transition: opacity 0.5s ease, visibility 0.5s ease;
-}
-
-/* When the lamp is ON, reveal all text and website content */
-html[data-lamp='on'] header,
-html[data-lamp='on'] main,
-html[data-lamp='on'] footer {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 0.8s ease;
+  pointer-events: none;
 }
 
 .lamp__veil[data-off='true'] {

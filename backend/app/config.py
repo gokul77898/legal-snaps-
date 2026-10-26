@@ -29,9 +29,8 @@ class Settings(BaseSettings):
     hf_router_base_url: str = "https://router.huggingface.co/v1"
     hf_provider_base_url: str = "https://router.huggingface.co"
     hf_text_model: str = "Qwen/Qwen2.5-72B-Instruct"
-    # FLUX.1-dev is the stronger open-weight FLUX.1 model. It follows the wordless
-    # editorial artwork brief more reliably than schnell and is served by fal-ai.
-    hf_image_model: str = "black-forest-labs/FLUX.1-dev"
+    # FLUX.1 (schnell for ultra-fast inference / dev for full detail) via fal-ai provider
+    hf_image_model: str = "black-forest-labs/FLUX.1-schnell"
     hf_image_provider: str = "fal-ai"
 
     # Search & Discovery settings

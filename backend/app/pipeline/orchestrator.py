@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import logging
 from pathlib import Path
@@ -5,12 +6,18 @@ from typing import List, Optional
 from xml.etree import ElementTree as ET
 
 from app.config import settings
-from app.database import get_job, update_job
+from app.database import get_job, list_jobs, update_job
 from app.schemas import JobStage, STAGE_NAMES
 from app.pipeline.discovery import discover_sources
 from app.pipeline.retrieval import retrieve_and_extract
 from app.pipeline.extraction import build_analysis_corpus, count_words, structure_legal_text
-from app.pipeline.hf_ai import HFProviderError, analyze_legal_with_hf, generate_legal_artwork
+from app.pipeline.hf_ai import (
+    HFProviderError,
+    analyze_legal_with_hf,
+    generate_design_brief_with_hf,
+    generate_explainer_illustrations,
+    generate_legal_artwork,
+)
 from app.pipeline.legal_validator import validate_legal_record
 from app.pipeline.content_planner import plan_infographic_content
 from app.pipeline.svg_designer import generate_legal_snaps_svg
@@ -33,21 +40,33 @@ def _render_png(svg_markup: str, png_path: Path, width: int, height: int) -> Non
         raise PipelineError(f"SVG rasterisation failed: {err or 'no output file'}")
 
 
+def _stored_layout_key(job: dict) -> Optional[str]:
+    """Rebuild DesignBrief.layout_key from a stored job, without revalidating its pointers."""
+    brief = job.get("design_brief") or {}
+    sections = brief.get("sections") or []
+    family = brief.get("layout_family")
+    family = getattr(family, "value", family)
+    if not family or not sections:
+        return None
+    return "/".join([str(family), str(brief.get("headline_scale")), str(len(sections))])
+
+
 def _quality_check(svg_markup: str, plan, png_path: Optional[Path],
                    width: int, height: int) -> List[str]:
-    """Verify the artifacts actually contain this job's content."""
+    """Verify the artifacts actually contain this job's content and selected structure."""
     problems: List[str] = []
 
+    root = None
     try:
-        ET.fromstring(svg_markup)
+        root = ET.fromstring(svg_markup)
     except ET.ParseError as e:
         problems.append(f"SVG is not well-formed XML: {e}")
 
     if len(svg_markup) < 800:
         problems.append(f"SVG is implausibly small ({len(svg_markup)} chars).")
 
-    # The rendered title is upper-cased and truncated to two short lines, so only the
-    # leading words can be expected to appear.
+    # The rendered title is upper-cased and truncated, so only the leading words can be
+    # expected to appear.
     for word in [w for w in plan.headline.split() if len(w) > 3][:2]:
         if word.upper() not in svg_markup.upper():
             problems.append(f"Headline word '{word}' is missing from the rendered SVG.")
@@ -56,6 +75,56 @@ def _quality_check(svg_markup: str, plan, png_path: Optional[Path],
         domain = plan.source_url.split("//")[-1].split("/")[0]
         if domain and domain not in svg_markup:
             problems.append("Source domain is missing from the rendered SVG.")
+
+    # Brand invariants that must survive every art-direction family.
+    if "Legal Snaps" not in svg_markup:
+        problems.append("Legal Snaps brand lockup is missing from the rendered SVG.")
+    if plan.design_brief is not None:
+        if "#CFA444" not in svg_markup:
+            problems.append("Brand gold #CFA444 is missing from the dynamic layout.")
+        if "#4A4C5A" not in svg_markup:
+            problems.append("Brand charcoal #4A4C5A is missing from the dynamic layout.")
+        if 'data-layout-family=' not in svg_markup:
+            problems.append("Dynamic SVG does not declare its selected layout family.")
+
+    brief = plan.design_brief
+    if brief is not None and root is not None:
+        expected_family = brief.layout_family.value
+        actual_family = root.attrib.get("data-layout-family")
+        if actual_family != expected_family:
+            problems.append(
+                f"Rendered layout family is '{actual_family}', brief selected '{expected_family}'."
+            )
+        try:
+            bottom = float(root.attrib.get("data-content-bottom", "inf"))
+            limit = float(root.attrib.get("data-canvas-bottom", "inf"))
+        except ValueError:
+            bottom = limit = float("inf")
+            problems.append("Dynamic layout bounds are not numeric.")
+        if bottom > limit + 1:
+            problems.append(
+                f"Dynamic layout overflows its canvas by {bottom - limit:.1f} design units."
+            )
+        if brief.layout_signature not in svg_markup:
+            problems.append("Rendered layout signature does not match the validated brief.")
+        if brief.layout_family.value == "chart_led":
+            bars = [
+                element
+                for element in root.iter("{http://www.w3.org/2000/svg}rect")
+                if element.attrib.get("fill") in {"#CFA444", "#232836"}
+            ]
+            chart = brief.chart
+            expected_bars = len(chart.data) if chart else 0
+            if len(bars) < expected_bars:
+                problems.append(
+                    f"Chart-led layout rendered {len(bars)} bars, expected {expected_bars}."
+                )
+            if chart:
+                for datum in chart.data:
+                    if datum.value_text not in svg_markup:
+                        problems.append(
+                            f"Chart value '{datum.value_text}' was not rendered verbatim."
+                        )
 
     if png_path is not None:
         if not png_path.is_file():
@@ -74,13 +143,15 @@ def _quality_check(svg_markup: str, plan, png_path: Optional[Path],
     return problems
 
 
-async def run_pipeline(job_id: str):
+async def run_pipeline(job_id: str, preferred_layout: Optional[str] = None):
     """
     Execute the 10-stage Legal Snaps pipeline.
 
-    Each stage performs its real operation before reporting progress, and any failure
-    ends the job with the underlying error message rather than a stand-in result.
+    preferred_layout pins the composition when an editor has explicitly chosen one; the
+    brief still has to ground every section in the record. Each stage performs its real
+    operation before reporting progress, and any failure ends the job with the underlying
     """
+    preferred_layout = preferred_layout or "briefing_sheet"
     job = get_job(job_id)
     if not job:
         logger.error("Job %s not found in database", job_id)
@@ -260,13 +331,37 @@ async def run_pipeline(job_id: str):
         # ------------------------------------------------------------------
         # Stage 6: Designing the infographic
         # ------------------------------------------------------------------
-        stage_in_progress(6, JobStage.DESIGNING, "Planning editorial layout from the validated record...", 70)
+        stage_in_progress(6, JobStage.DESIGNING, "Choosing article-specific art direction...", 68)
 
-        plan = plan_infographic_content(legal_record, validation, source_meta)
+        # Variation has to be measured against what was just published, otherwise a run of
+        # similar judgments quietly produces the same poster shape every time.
+        recent_layouts: List[str] = []
+        for previous in list_jobs(limit=12):
+            if previous.get("job_id") == job_id:
+                continue
+            key = _stored_layout_key(previous)
+            if key:
+                recent_layouts.append(key)
+        design_brief = await generate_design_brief_with_hf(
+            legal_record,
+            validation,
+            avoid_layouts=recent_layouts,
+            preferred_family=preferred_layout,
+        )
+        if design_brief.layout_key in recent_layouts and preferred_layout is None:
+            warnings.append(
+                "This poster uses the same composition as a recent job; the art direction "
+                f"model kept choosing {design_brief.layout_family.value} for this record."
+            )
+        update_job(job_id, {"design_brief": design_brief.model_dump()})
+
+        plan = plan_infographic_content(
+            legal_record, validation, source_meta, design_brief=design_brief
+        )
         update_job(job_id, {"content_plan": plan.model_dump()})
         stage_done(
             6, JobStage.DESIGNING,
-            f"{len(plan.takeaways)} takeaways, {len(plan.comparison_new_items)} comparison items, "
+            f"Layout {design_brief.layout_family.value}; signature {design_brief.layout_signature}; "
             f"headline '{plan.headline[:50]}'",
             74,
         )
@@ -278,20 +373,36 @@ async def run_pipeline(job_id: str):
 
         artwork_data_uri: Optional[str] = None
         artwork_filename: Optional[str] = None
+        illustration_uris: dict = {}
 
         if not want_artwork:
             stage_done(7, JobStage.GENERATING_ARTWORK, "skipped - artwork disabled for this request", 80)
         else:
             artwork_path = storage_dir / f"{job_id}_artwork.png"
-            ok, err = await generate_legal_artwork(str(artwork_path), plan)
+            # The briefing sheet carries a picture on each card, so Qwen names those
+            # pictures and Krea draws them in parallel with the hero illustration.
+            wants_card_art = design_brief.layout_family.value == "briefing_sheet"
+            if wants_card_art:
+                (ok, err), (illustration_uris, art_warnings) = await asyncio.gather(
+                    generate_legal_artwork(str(artwork_path), plan),
+                    generate_explainer_illustrations(
+                        str(storage_dir), job_id, plan, legal_record
+                    ),
+                )
+                warnings.extend(art_warnings)
+            else:
+                ok, err = await generate_legal_artwork(str(artwork_path), plan)
+
             if ok and artwork_path.is_file():
                 artwork_data_uri = "data:image/png;base64," + base64.b64encode(
                     artwork_path.read_bytes()
                 ).decode("ascii")
                 artwork_filename = artwork_path.name
                 update_job(job_id, {"artwork_filename": artwork_filename})
-                stage_done(7, JobStage.GENERATING_ARTWORK,
-                           f"generated with {settings.hf_image_model} ({artwork_path.stat().st_size} bytes)", 80)
+                detail = f"generated with {settings.hf_image_model} ({artwork_path.stat().st_size} bytes)"
+                if wants_card_art:
+                    detail += f"; {len(illustration_uris)} card pictures embedded"
+                stage_done(7, JobStage.GENERATING_ARTWORK, detail, 80)
             else:
                 message = err or "artwork generation returned no file"
                 raise PipelineError(
@@ -304,6 +415,8 @@ async def run_pipeline(job_id: str):
             width=width,
             height=height,
             artwork_base64_data_uri=artwork_data_uri,
+            record=legal_record,
+            illustrations=illustration_uris,
         )
         svg_filename = f"{job_id}_infographic.svg"
         svg_path = storage_dir / svg_filename
@@ -334,6 +447,10 @@ async def run_pipeline(job_id: str):
         stage_in_progress(9, JobStage.CHECKING_QUALITY, "Validating markup, dimensions and article-specific content...", 92)
 
         problems = _quality_check(svg_markup, plan, png_path, width, height)
+        if illustration_uris and 'class="card-art"' not in svg_markup:
+            problems.append(
+                f"{len(illustration_uris)} card pictures were generated but none reached the poster."
+            )
         if problems:
             raise PipelineError("Quality checks failed: " + "; ".join(problems))
 

@@ -433,7 +433,7 @@ export default function Home() {
                       />
                       <DossierRow
                         label="Artwork"
-                        value={health?.image_model || 'black-forest-labs/FLUX.1-dev'}
+                        value={health?.image_model || 'black-forest-labs/FLUX.1-schnell'}
                       />
                       <DossierRow
                         label="Rasteriser"
@@ -697,7 +697,7 @@ export default function Home() {
               <span className="eyebrow">Instruments</span>
               <ul className="mt-4 space-y-2 font-mono text-[10.5px] text-paper/45">
                 <li>Qwen 2.5 &middot; 72B</li>
-                <li>FLUX.1 &middot; dev</li>
+                <li>FLUX.1 &middot; artwork</li>
                 <li>Deterministic SVG</li>
                 <li>Instrument Serif &middot; Plex Mono</li>
               </ul>

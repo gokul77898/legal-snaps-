@@ -1,6 +1,8 @@
 import { JobResponse, JobListItem, HealthStatus } from '@/types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Same-origin by default: Next rewrites /api/* to the FastAPI backend, so a single
+// public URL serves both the UI and the API without exposing the backend port.
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 export async function createInfographic(payload: {
   article_name?: string;

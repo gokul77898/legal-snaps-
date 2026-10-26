@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import List, Optional, Set
 
 from app.schemas import (
+    DesignBrief,
     InfographicContentPlan,
     LegalRecord,
     SourceMetadata,
@@ -435,16 +436,29 @@ def plan_infographic_content(
     record: LegalRecord,
     validation: ValidationSummary,
     source_meta: Optional[SourceMetadata] = None,
+    design_brief: Optional[DesignBrief] = None,
 ) -> InfographicContentPlan:
     """
-    Transforms ANY legal document into the Legal Snaps editorial format.
-    All content is derived from the actual LegalRecord — no hardcoded templates.
+    Prepare the verified editorial content for one job.
 
-    Layout: Header Icon + Title + Subtitle -> Overview Card -> Key Takeaways -> Dual Column Comparison -> Gold Footer
+    When a design brief is supplied it decides the visible structure; the planner supplies
+    headline, provenance, date and verification copy. The legacy overview/takeaway fields
+    remain populated for API consumers and the deprecated fixed-template renderer, but the
+    dynamic SVG path never forces those three sections onto a poster.
     """
-    headline = _clean_whitespace(record.case_name or record.article_title) or "Legal Snaps Brief"
+    headline = _clean_whitespace(
+        (
+            record.article_title
+            if design_brief and design_brief.headline_source == "article_title"
+            else record.case_name or record.article_title
+        )
+    ) or "Legal Snaps Brief"
     publisher = _clean_publisher(source_meta.publisher if source_meta else None)
     subtitle = _build_hook(record, publisher)
+    if subtitle and _clean_whitespace(subtitle).lower() == headline.lower():
+        subtitle = _shorten(record.holding_or_operative_order, SUBTITLE_LIMIT).rstrip(" .")
+        if len(subtitle) < 25:
+            subtitle = publisher
     meta_line = _build_meta(record)
     overview = _build_overview(record)
     takeaways = _build_takeaways(record)
@@ -496,4 +510,5 @@ def plan_infographic_content(
         verification_note=verification_note,
         artwork_subject=_build_artwork_subject(record),
         analysis_source=record.analysis_source,
+        design_brief=design_brief,
     )

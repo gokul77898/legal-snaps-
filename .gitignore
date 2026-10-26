@@ -7,9 +7,12 @@ __pycache__/
 .pytest_cache/
 
 # Storage & DB
-backend/storage/legal_snaps.db
-backend/storage/artifacts/*.png
-backend/storage/artifacts/*.svg
+backend/storage/*.db*
+backend/storage/*.png
+backend/storage/*.svg
+backend/storage/artifacts/
+backend/storage/backups/
+backend/backups/
 
 # Node / Next.js
 frontend/node_modules/

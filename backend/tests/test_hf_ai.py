@@ -243,7 +243,8 @@ async def test_artwork_native_client_png_is_written(tmp_path, monkeypatch):
     assert seen["request"]["width"] == 1024
     assert seen["request"]["height"] == 1024
     assert "no text" in seen["prompt"].lower()
-    assert "wig" in seen["request"]["negative_prompt"]
+    negative = seen["request"]["negative_prompt"].lower()
+    assert "text" in negative and "watermark" in negative and "photorealism" in negative
 
 
 async def test_artwork_invalid_client_result_returns_false(tmp_path, monkeypatch):

@@ -116,18 +116,21 @@ def _wrap(
 ) -> List[str]:
     """Wrap to a pixel width and ellipsise overflow instead of cutting mid-word.
 
-    The ratios are measured from Poppins renders; they are deliberately a little
-    wide so measured card heights never come out shorter than the painted text.
+    The ratios are measured from the bundled Poppins faces (average advance per
+    character across real legal copy at each weight) with a small headroom, so a
+    line that the model accepts really does fit inside the panel it was sized
+    for. Earlier ratios were optimistic for Medium and SemiBold and let a word
+    run under the gold edge bar of the dark holding panel.
     """
     if not text:
         return []
-    factor = 0.50
+    factor = 0.53
     if weight in ("700", "800"):
-        factor = 0.60
+        factor = 0.62
     elif weight == "600":
-        factor = 0.52
+        factor = 0.56
     elif weight == "500":
-        factor = 0.49
+        factor = 0.54
     if uppercase:
         factor += 0.03
     per_line = max(8, int(max_width / (font_size * factor)))
@@ -237,6 +240,129 @@ def render_takeaway_icon(icon_type: str, gold: str) -> str:
           <line x1="5.5" y1="4.5" x2="18.5" y2="17.5" stroke="{gold}" stroke-width="2.2"/>
         </g>
         '''
+    if icon_type == "people":
+        return f'''
+        <g>
+          <circle cx="8.5" cy="7" r="3.4" fill="{gold}"/>
+          <path d="M2 20c0-4 2.9-6.2 6.5-6.2S15 16 15 20z" fill="{gold}"/>
+          <circle cx="17.5" cy="8.2" r="2.7" fill="{gold}" opacity="0.72"/>
+          <path d="M14 20c0-3.1 1.6-4.9 3.8-4.9 2.3 0 4.2 1.8 4.2 4.9z" fill="{gold}" opacity="0.72"/>
+        </g>
+        '''
+    if icon_type == "bank":
+        return f'''
+        <g>
+          <polygon points="12,2 1.5,8 22.5,8" fill="{gold}"/>
+          <line x1="4" y1="9" x2="4" y2="18" stroke="{gold}" stroke-width="2"/>
+          <line x1="9" y1="9" x2="9" y2="18" stroke="{gold}" stroke-width="2"/>
+          <line x1="15" y1="9" x2="15" y2="18" stroke="{gold}" stroke-width="2"/>
+          <line x1="20" y1="9" x2="20" y2="18" stroke="{gold}" stroke-width="2"/>
+          <rect x="1.5" y="18" width="21" height="3.2" fill="{gold}"/>
+        </g>
+        '''
+    if icon_type == "bond":
+        return f'''
+        <g>
+          <rect x="2.5" y="4.5" width="19" height="12.5" rx="1.6" fill="#FFFFFF" stroke="{gold}" stroke-width="1.8"/>
+          <line x1="5.5" y1="8" x2="14" y2="8" stroke="{gold}" stroke-width="1.4"/>
+          <line x1="5.5" y1="11" x2="12" y2="11" stroke="{gold}" stroke-width="1.4"/>
+          <circle cx="17" cy="14.5" r="3.4" fill="{gold}"/>
+          <path d="M15.4 17.6 L14.2 22 L17 20.6 L19.8 22 L18.6 17.6" fill="{gold}"/>
+        </g>
+        '''
+    if icon_type == "flag":
+        return f'''
+        <g>
+          <line x1="5" y1="2" x2="5" y2="22" stroke="{gold}" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M6 3.2h13l-3.2 4.2L19 11.6H6z" fill="{gold}"/>
+        </g>
+        '''
+    if icon_type == "document":
+        return f'''
+        <g>
+          <rect x="4" y="2" width="14.5" height="20" rx="2" fill="#FFFFFF" stroke="{gold}" stroke-width="1.8"/>
+          <line x1="7" y1="7" x2="15.5" y2="7" stroke="{gold}" stroke-width="1.4"/>
+          <line x1="7" y1="11" x2="15.5" y2="11" stroke="{gold}" stroke-width="1.4"/>
+          <line x1="7" y1="15" x2="12" y2="15" stroke="{gold}" stroke-width="1.4"/>
+          <circle cx="17.5" cy="18" r="4.2" fill="{gold}"/>
+          <path d="M15.6 18 L17 19.4 L19.6 16.6" stroke="#FFFFFF" stroke-width="1.3" fill="none"/>
+        </g>
+        '''
+    if icon_type in ("magnifier", "search"):
+        return f'''
+        <g>
+          <circle cx="10" cy="10" r="6.2" fill="none" stroke="{gold}" stroke-width="2.4"/>
+          <line x1="14.8" y1="14.8" x2="21" y2="21" stroke="{gold}" stroke-width="2.8" stroke-linecap="round"/>
+        </g>
+        '''
+    if icon_type == "calendar":
+        return f'''
+        <g>
+          <rect x="2.5" y="4.5" width="19" height="17" rx="2" fill="#FFFFFF" stroke="{gold}" stroke-width="1.8"/>
+          <line x1="2.5" y1="10" x2="21.5" y2="10" stroke="{gold}" stroke-width="1.6"/>
+          <line x1="8" y1="2" x2="8" y2="6.5" stroke="{gold}" stroke-width="2"/>
+          <line x1="16" y1="2" x2="16" y2="6.5" stroke="{gold}" stroke-width="2"/>
+          <rect x="6.5" y="13" width="4.5" height="4.5" fill="{gold}"/>
+        </g>
+        '''
+    if icon_type == "lock":
+        return f'''
+        <g>
+          <rect x="4.5" y="10" width="15" height="11.5" rx="2.2" fill="{gold}"/>
+          <path d="M8 10V7.2a4 4 0 0 1 8 0V10" fill="none" stroke="{gold}" stroke-width="2.4"/>
+          <circle cx="12" cy="15" r="1.8" fill="#FFFFFF"/>
+        </g>
+        '''
+    if icon_type == "ballot":
+        return f'''
+        <g>
+          <rect x="2.5" y="7.5" width="19" height="14" rx="2" fill="#FFFFFF" stroke="{gold}" stroke-width="1.9"/>
+          <line x1="8" y1="7.5" x2="8" y2="4" stroke="{gold}" stroke-width="2"/>
+          <line x1="8" y1="4" x2="16" y2="4" stroke="{gold}" stroke-width="2"/>
+          <line x1="16" y1="4" x2="16" y2="7.5" stroke="{gold}" stroke-width="2"/>
+          <path d="M7.5 14.5 L10.5 17.5 L16.5 11.5" stroke="{gold}" stroke-width="2.2" fill="none"/>
+        </g>
+        '''
+    if icon_type in ("rupee", "money"):
+        return f'''
+        <g>
+          <circle cx="12" cy="12" r="9" fill="none" stroke="{gold}" stroke-width="2"/>
+          <text x="12" y="16" font-size="11" font-weight="700" text-anchor="middle" fill="{gold}" font-family="{FONT_STACK}">&#8377;</text>
+        </g>
+        '''
+    if icon_type == "building":
+        return f'''
+        <g>
+          <rect x="4" y="4" width="16" height="18" rx="1.5" fill="#FFFFFF" stroke="{gold}" stroke-width="1.8"/>
+          <rect x="7" y="7" width="3.5" height="3.5" fill="{gold}"/>
+          <rect x="13.5" y="7" width="3.5" height="3.5" fill="{gold}"/>
+          <rect x="7" y="13" width="3.5" height="3.5" fill="{gold}"/>
+          <rect x="13.5" y="13" width="3.5" height="3.5" fill="{gold}"/>
+          <rect x="10" y="18" width="4" height="4" fill="{gold}"/>
+        </g>
+        '''
+    if icon_type == "scales":
+        return f'''
+        <g>
+          <line x1="12" y1="3" x2="12" y2="21" stroke="{gold}" stroke-width="2" stroke-linecap="round"/>
+          <line x1="7" y1="21" x2="17" y2="21" stroke="{gold}" stroke-width="2" stroke-linecap="round"/>
+          <line x1="4" y1="6" x2="20" y2="6" stroke="{gold}" stroke-width="1.8"/>
+          <line x1="4" y1="6" x2="1.5" y2="12" stroke="{gold}" stroke-width="1.2"/>
+          <line x1="4" y1="6" x2="6.5" y2="12" stroke="{gold}" stroke-width="1.2"/>
+          <path d="M1 12 Q4 15 7 12 Z" fill="{gold}"/>
+          <line x1="20" y1="6" x2="17.5" y2="12" stroke="{gold}" stroke-width="1.2"/>
+          <line x1="20" y1="6" x2="22.5" y2="12" stroke="{gold}" stroke-width="1.2"/>
+          <path d="M17 12 Q20 15 23 12 Z" fill="{gold}"/>
+        </g>
+        '''
+    if icon_type == "anonymous":
+        return f'''
+        <g>
+          <path d="M2 12c0-4.4 4.5-7 10-7s10 2.6 10 7c0 3.6-4.5 5.6-10 5.6S2 15.6 2 12z" fill="none" stroke="{gold}" stroke-width="2"/>
+          <circle cx="8.5" cy="11.5" r="1.6" fill="{gold}"/>
+          <circle cx="15.5" cy="11.5" r="1.6" fill="{gold}"/>
+        </g>
+        '''
     return f'''
     <g>
       <rect x="0" y="17" width="18" height="3" rx="1" fill="{gold}"/>
@@ -249,12 +375,8 @@ def render_takeaway_icon(icon_type: str, gold: str) -> str:
 
 
 def render_editorial_illustration(gold: str, gray: str, year: Optional[str] = None) -> str:
-    """Vector fallback illustration drawn in a 140x150 local box."""
-    year_label = (
-        f'<text x="28" y="60" fill="{gray}" font-size="10" font-weight="700" text-anchor="middle" '
-        f'font-family="{FONT_STACK}">{escape_xml(year)}</text>'
-        if year else ""
-    )
+    """Vector fallback illustration drawn in a 140x150 local box. Distracting year watermark removed by default."""
+    year_label = ""
     return f'''
     <g>
       <g opacity="0.16">
@@ -502,7 +624,27 @@ def generate_legal_snaps_svg(
     width: int = 800,
     height: int = 1240,
     artwork_base64_data_uri: Optional[str] = None,
+    record=None,
+    illustrations: Optional[Dict[str, str]] = None,
 ) -> str:
+    """Render the plan.
+
+    A plan carrying an article-specific design brief uses the dynamic art-direction
+    renderer. The original fixed poster remains available only for callers that explicitly
+    supply a brief-less plan; production always sets a brief before reaching this function.
+    """
+    if getattr(plan, "design_brief", None) is not None:
+        from app.pipeline.dynamic_designer import render_dynamic_svg
+
+        if record is None:
+            raise ValueError(
+                "A design brief must be rendered against the validated LegalRecord it cites."
+            )
+        return render_dynamic_svg(
+            plan, record, plan.design_brief, width, height, artwork_base64_data_uri,
+            illustrations,
+        )
+
     inner_w = DESIGN_WIDTH - (PAD * 2)
     # Uniform design scale: the design space is 1080 wide; canvas height is converted
     # into the same coordinate system so nothing is squashed.

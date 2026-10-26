@@ -37,6 +37,7 @@ def init_db():
                 source_metadata TEXT,
                 legal_record TEXT,
                 validation_summary TEXT,
+                design_brief TEXT,
                 content_plan TEXT,
                 svg_filename TEXT,
                 png_filename TEXT,
@@ -46,6 +47,17 @@ def init_db():
             )
         """)
         conn.commit()
+
+    columns = {
+        row["name"]
+        for row in get_connection().execute("PRAGMA table_info(infographic_jobs)").fetchall()
+    }
+    if "design_brief" not in columns:
+        with get_connection() as conn:
+            conn.execute("ALTER TABLE infographic_jobs ADD COLUMN design_brief TEXT")
+            conn.commit()
+            logger.info("Added design_brief column to existing job archive")
+
     logger.info("Database initialized successfully at %s", settings.sqlite_db_path)
 
 def create_job(job_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -60,7 +72,7 @@ def create_job(job_data: Dict[str, Any]) -> Dict[str, Any]:
                 output_format, enable_image_generation, width, height,
                 created_at, updated_at, error_message,
                 source_metadata, legal_record, validation_summary,
-                content_plan, svg_filename, png_filename,
+                design_brief, content_plan, svg_filename, png_filename,
                 artwork_filename, warnings, logs
             ) VALUES (
                 ?, ?, ?, ?,
@@ -69,7 +81,7 @@ def create_job(job_data: Dict[str, Any]) -> Dict[str, Any]:
                 ?, ?, ?,
                 ?, ?, ?,
                 ?, ?, ?,
-                ?, ?, ?
+                ?, ?, ?, ?
             )
         """, (
             job_id,
@@ -90,6 +102,7 @@ def create_job(job_data: Dict[str, Any]) -> Dict[str, Any]:
             json.dumps(job_data.get("source_metadata")) if job_data.get("source_metadata") else None,
             json.dumps(job_data.get("legal_record")) if job_data.get("legal_record") else None,
             json.dumps(job_data.get("validation_summary")) if job_data.get("validation_summary") else None,
+            json.dumps(job_data.get("design_brief")) if job_data.get("design_brief") else None,
             json.dumps(job_data.get("content_plan")) if job_data.get("content_plan") else None,
             job_data.get("svg_filename"),
             job_data.get("png_filename"),
@@ -107,7 +120,7 @@ def update_job(job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]
     fields = []
     values = []
     
-    json_fields = ["source_metadata", "legal_record", "validation_summary", "content_plan", "warnings", "logs"]
+    json_fields = ["source_metadata", "legal_record", "validation_summary", "design_brief", "content_plan", "warnings", "logs"]
     
     for k, v in updates.items():
         if k in json_fields and v is not None and not isinstance(v, str):
@@ -130,45 +143,34 @@ def update_job(job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]
         
     return get_job(job_id)
 
+_JSON_LIST_FIELDS = {"warnings", "logs"}
+
+def _decode_job_row(row: sqlite3.Row) -> Dict[str, Any]:
+    d = dict(row)
+    for field in ["source_metadata", "legal_record", "validation_summary", "design_brief", "content_plan", "warnings", "logs"]:
+        raw = d.get(field)
+        if raw:
+            try:
+                d[field] = json.loads(raw)
+            except Exception:
+                d[field] = [] if field in _JSON_LIST_FIELDS else None
+        else:
+            d[field] = [] if field in _JSON_LIST_FIELDS else None
+    d["enable_image_generation"] = bool(d.get("enable_image_generation", 0))
+    return d
+
 def get_job(job_id: str) -> Optional[Dict[str, Any]]:
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM infographic_jobs WHERE job_id = ?", (job_id,))
         row = cursor.fetchone()
-        if not row:
-            return None
-        d = dict(row)
-        # Parse JSON fields
-        for field in ["source_metadata", "legal_record", "validation_summary", "content_plan", "warnings", "logs"]:
-            if d.get(field):
-                try:
-                    d[field] = json.loads(d[field])
-                except Exception:
-                    d[field] = None if "summary" in field or "record" in field or "metadata" in field or "plan" in field else []
-            else:
-                d[field] = None if "summary" in field or "record" in field or "metadata" in field or "plan" in field else []
-        d["enable_image_generation"] = bool(d.get("enable_image_generation", 0))
-        return d
+        return _decode_job_row(row) if row is not None else None
 
 def list_jobs(limit: int = 50) -> List[Dict[str, Any]]:
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM infographic_jobs ORDER BY created_at DESC LIMIT ?", (limit,))
-        rows = cursor.fetchall()
-        result = []
-        for row in rows:
-            d = dict(row)
-            for field in ["source_metadata", "legal_record", "validation_summary", "content_plan", "warnings", "logs"]:
-                if d.get(field):
-                    try:
-                        d[field] = json.loads(d[field])
-                    except Exception:
-                        d[field] = None
-                else:
-                    d[field] = None
-            d["enable_image_generation"] = bool(d.get("enable_image_generation", 0))
-            result.append(d)
-        return result
+        return [_decode_job_row(row) for row in cursor.fetchall()]
 
 def delete_job(job_id: str) -> bool:
     job = get_job(job_id)

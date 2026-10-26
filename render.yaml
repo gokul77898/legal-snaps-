@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: legal-snaps
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    envVars:
+      - key: HF_TOKEN
+        sync: false

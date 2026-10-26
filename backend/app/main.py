@@ -1,7 +1,10 @@
+import os
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from app.config import settings
 from app.database import init_db
 from app.api import infographics, health
@@ -44,12 +47,43 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(infographics.router)
 
-@app.get("/")
-async def root():
-    return {
-        "app": settings.app_name,
-        "version": "1.0.0",
-        "docs_url": "/docs",
-        "health_url": "/api/health",
-        "status": "online"
-    }
+# Mount Frontend Static Build (All-in-One Deployment)
+possible_frontend_dirs = [
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend", "out"),
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "static"),
+    "/app/frontend/out",
+]
+
+frontend_dist = None
+for d in possible_frontend_dirs:
+    if os.path.isdir(d) and os.path.isfile(os.path.join(d, "index.html")):
+        frontend_dist = d
+        break
+
+if frontend_dist:
+    logger.info(f"Mounting frontend static build from: {frontend_dist}")
+    next_dir = os.path.join(frontend_dist, "_next")
+    if os.path.isdir(next_dir):
+        app.mount("/_next", StaticFiles(directory=next_dir), name="next_static")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        if full_path.startswith("api/") or full_path == "api":
+            return {"detail": "Not Found"}
+        target_file = os.path.join(frontend_dist, full_path)
+        if os.path.isfile(target_file):
+            return FileResponse(target_file)
+        index_file = os.path.join(frontend_dist, "index.html")
+        if os.path.isfile(index_file):
+            return FileResponse(index_file)
+        return {"detail": "Not Found"}
+else:
+    @app.get("/")
+    async def root():
+        return {
+            "app": settings.app_name,
+            "version": "1.0.0",
+            "docs_url": "/docs",
+            "health_url": "/api/health",
+            "status": "online"
+        }

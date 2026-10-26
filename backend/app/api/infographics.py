@@ -11,6 +11,7 @@ from app.schemas import (
     JobResponse,
     JobListItem,
     JobStage,
+    LayoutFamily,
     STAGE_NAMES
 )
 from app.pipeline.orchestrator import run_pipeline
@@ -50,6 +51,7 @@ def build_job_response(job: dict) -> JobResponse:
         source_metadata=job.get("source_metadata"),
         legal_record=job.get("legal_record"),
         validation_summary=job.get("validation_summary"),
+        design_brief=job.get("design_brief"),
         content_plan=job.get("content_plan"),
         svg_filename=svg_fn,
         png_filename=png_fn,
@@ -76,6 +78,16 @@ async def create_infographic_job(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    preferred_layout = None
+    if request.layout_family:
+        try:
+            preferred_layout = LayoutFamily(request.layout_family).value
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown layout family '{request.layout_family}'.",
+            )
+
     job_id = str(uuid.uuid4())
     job_record = {
         "job_id": job_id,
@@ -94,9 +106,11 @@ async def create_infographic_job(
         "warnings": []
     }
 
+    if preferred_layout:
+        job_record["logs"].append(f"Composition pinned to '{preferred_layout}'")
     created = create_job(job_record)
     # Launch background task
-    background_tasks.add_task(run_pipeline, job_id)
+    background_tasks.add_task(run_pipeline, job_id, preferred_layout)
 
     return build_job_response(created)
 

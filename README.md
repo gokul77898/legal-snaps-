@@ -92,7 +92,27 @@ flowchart TD
 
 ---
 
-## 🚀 Quick Start
+## 🚀 All-in-One Deployment (Single URL & Port)
+
+Legal Snaps is packaged as a **single unified service** where FastAPI serves both the API and the compiled Next.js frontend on one single port with zero CORS configuration.
+
+### Deploy on Render (Single Web Service)
+1. Go to **[dashboard.render.com](https://dashboard.render.com/)** → **New +** → **Web Service**.
+2. Connect your repository: .
+3. Select **Docker** runtime (or Render will auto-detect the root ).
+4. Add environment variable:
+   * `HF_TOKEN`: Your Hugging Face API token
+5. Click **Deploy Web Service**! Render will build both frontend & backend and deploy to a single live `.onrender.com` URL.
+
+### Deploy on Railway (Single Project)
+1. Go to **[railway.app](https://railway.app/)** → **New Project** → **Deploy from GitHub repo**.
+2. Select `gokul77898/legal-snaps-`.
+3. Add variable `HF_TOKEN`.
+4. Railway automatically detects the `Dockerfile` and serves everything on your generated domain!
+
+---
+
+## 💻 Local Development & Quick Start
 
 ### 1. Prerequisites
 - **Node.js** 20.x or higher

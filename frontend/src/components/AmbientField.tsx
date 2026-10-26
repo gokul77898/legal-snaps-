@@ -15,7 +15,7 @@ export const AmbientField: React.FC = () => {
   const lampRef = useRef<HTMLDivElement | null>(null);
   const pendulumRef = useRef<HTMLDivElement | null>(null);
   const interactionRef = useRef<HTMLButtonElement | null>(null);
-  // Default to OFF when website starts
+  // Start with the lamp OFF on application startup.
   const poweredRef = useRef(false);
   const flickerTimer = useRef<number | null>(null);
   const [powered, setPowered] = useState(false);
@@ -23,10 +23,8 @@ export const AmbientField: React.FC = () => {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-lamp', powered ? 'on' : 'off');
-    document.body.style.overflow = powered ? '' : 'hidden';
     return () => {
       document.documentElement.removeAttribute('data-lamp');
-      document.body.style.overflow = '';
     };
   }, [powered]);
 
@@ -308,7 +306,9 @@ export const AmbientField: React.FC = () => {
           <div className="lamp__glow" />
           <div className="lamp__cone" />
           <div className="lamp__cord" />
+          <div className="lamp__cap" />
           <div className="lamp__shade" />
+          <div className="lamp__rim" />
           <div className="lamp__bulb" />
           <div className="lamp__pull" />
           <div className="lamp__bead" />

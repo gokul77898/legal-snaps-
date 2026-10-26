@@ -116,9 +116,19 @@ def test_square_canvas_keeps_full_editorial_composition():
         artwork_base64_data_uri="data:image/png;base64,AAAA",
     )
 
-    ET.fromstring(svg)
-    assert all(item.description in svg for item in plan.takeaways)
-    assert "The Law and the Ruling" in svg
-    assert "Prison authorities must treat prisoners equally" in svg
+    root = ET.fromstring(svg)
+    # Read the flattened copy rather than the raw markup: a long sentence may wrap onto
+    # two tspans at a square aspect ratio, which is still the full sentence on the poster.
+    chunks = [node.text or "" for node in root.iter() if node.tag.endswith("tspan")]
+    chunks += [
+        node.text or ""
+        for node in root.iter()
+        if node.tag.endswith("text") and not any(child.tag.endswith("tspan") for child in node)
+    ]
+    visible = " ".join(" ".join(chunks).split())
+    assert all(item.description in visible for item in plan.takeaways)
+    assert "The Law and the Ruling" in visible
+    assert "Prison authorities must treat prisoners equally" in visible
+    assert "…" not in visible
     assert '<image ' in svg
     assert "data:image/png;base64,AAAA" in svg
